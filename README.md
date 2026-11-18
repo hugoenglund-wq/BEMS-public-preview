@@ -42,10 +42,6 @@ Not ideal.
 
 Fixing that meant tracing the sequence of commands, readbacks and meter measurements, and changing how the regulator handles transitions between them. A lot of the engineering has looked more like this than like solving a neat optimisation problem.
 
-![Recorded commands, readbacks and AC measurements during an actual battery-control incident](images/control-incident.png)
-
-*An incident from 11 November 2026, reconstructed from recorded events. These are individual observations, not a continuous power trace.*
-
 There have been others: a charger that acknowledges commands before its state catches up, and a numerical failure that broke the optimiser.
 
 ## Does it actually save money?

@@ -20,15 +20,27 @@ So I set out to build something better: the first truly smart one (or smarter at
 
 Most smart energy systems aren't nearly as smart as they claim to be.
 
-They only work with certain brands, rely on forecasts that leave useful information out, and sometimes make decisions that don't seem to make much sense. Worse, you often have surprisingly little control over what they're actually trying to achieve.
+The problem isn't necessarily that they can't optimise electricity use. It's that they're built around a limited idea of what an energy system looks like.
 
-I wanted something different.
+There are countless different inverters, batteries and EV chargers. And that's before you start considering everything else that could be controlled, from underfloor heating to your wine fridge.
 
-A system that doesn't care who made your inverter, battery or EV charger. One that uses the data available to make better predictions, considers the entire household rather than individual devices, and actually respects what the user wants. If I tell it the car needs to be charged by 6 AM, that's a requirement, not a suggestion.
+Some solutions make things simple by only supporting certain hardware. Others let you connect almost anything, provided you're willing to spend a considerable amount of time figuring out how.
 
-That's what I'm building BEMS to be.
+Neither seemed particularly satisfying to me.
 
-The current system already runs in our home with an **11 kW solar installation, 30.72 kWh battery, Solis inverter, GARO EV charger and Volvo C40**. Wider hardware compatibility is still a goal, not a claim about what works today.
+I wanted to build a system that could adapt to the installation, rather than forcing the installation to adapt to the system.
+
+The long-term idea behind BEMS is an AI-supervised energy management system that can adapt its software to different hardware, data sources and economic models, without requiring the user to understand any of them. Ideally, you connect your equipment, tell BEMS what matters to you, and it figures out how to make the most of it.
+
+And there's no particular reason why that should stop at residential buildings.
+
+Imagine a logistics company operating a fleet of electric trucks with a large battery energy storage system. Optimising that installation would require more than electricity prices and weather forecasts. BEMS would need to communicate with the company's internal systems, understand where the trucks are, their planned routes and when they need to leave.
+
+A completely different installation, with completely different requirements. But fundamentally the same problem.
+
+That's what I want BEMS to become.
+
+For now, the system is running in our home, controlling a Solis inverter, a 30.72 kWh battery and a GARO EV charger alongside an 11 kW solar installation. It's still a long way from supporting everything, but it's a start.
 
 ## Making it work in the real world
 

@@ -8,7 +8,7 @@ The [README](../README.md) describes what I'm trying to build: an energy managem
 
 The answer isn't to write a separate optimiser for every battery or charger. **Separate what the equipment is, what we expect to happen, what we'd like to achieve and what the hardware can safely do.**
 
-Our home is the first real installation. **BEMS Next** is the modular redesign being developed and tested separately. It already explores generic resource models and an independent safety process, but it is **not yet a production-ready universal controller**.
+Our home is where BEMS moved from an optimisation idea to a working physical controller. It now combines forecasts, joint battery and EV planning, long-term energy valuation and an independent regulator to control real equipment. **BEMS Next takes that experience and turns it into a modular platform**, built around versioned site definitions, interchangeable resource models and a separate safety process.
 
 ## The installation is a model, not a collection of brand names
 
@@ -35,11 +35,11 @@ flowchart TB
     class Safety safe
 ```
 
-BEMS Next uses versioned site manifests, capability-based drivers and composable models for batteries, EV charging and thermal storage in its offline environment. The ambition is to make the same core usable for different sites and economic arrangements. Supporting a new physical device still requires verified integration and safety behaviour.
+BEMS Next already implements versioned site manifests, capability-based drivers and composable models for batteries, EV charging and thermal storage. Its offline tests cover very different installations, including multiple batteries and chargers, an EV-only site and a battery with thermal storage. **The optimiser is becoming installation-driven rather than device-specific.**
 
 ## Forecasting: the best prediction might not have the lowest error
 
-This turned out to be one of the more interesting problems in BEMS.
+Forecasting is where a seemingly small modelling choice can change an expensive physical decision.
 
 It's tempting to choose the model with the lowest mean absolute error (MAE). After all, a forecast that is wrong by fewer watts should make the controller smarter. Except **not every watt of error matters equally**.
 
@@ -67,6 +67,8 @@ In one limited autumn battery-planning replay, an intentionally false forecast o
 
 A separate price-weighted training experiment improved its chosen price-weighted error measure, but made some peak-tariff error measures and solar overestimation worse. Improving one surrogate objective had simply moved the error somewhere else.
 
+The improvement potential is measurable. In a retrospective study using archived GFS forecasts, adding a LightGBM residual to the solar physics model reduced scarcity-weighted absolute error from **0.351 to 0.246 kW, about 30%**. But that result is only half of the evaluation. The other half is whether the forecasts lead to better decisions when passed through the planner.
+
 That is why defining the right loss function is difficult. If we train the prediction model to work around a particular MPC weakness, a later improvement to the planner could make the supposedly better forecast counterproductive. The forecast should describe a credible future; **the planner should decide how cautious to be about that future**.
 
 ```mermaid
@@ -82,7 +84,7 @@ flowchart TB
 
 So I don't want to optimise one metric and declare victory. Forecasts should be checked for accuracy, systematic bias, calibration, different seasons and horizons, and finally their effect on **out-of-sample decisions using the actual planner**. To make that comparison meaningful, a replay must use only the data and forecast versions available at each decision time. Otherwise, hindsight is being disguised as a forecast.
 
-This also explains why BEMS separates physical solar models, statistical corrections, short-term measurement-based adjustments and scenario generation. They solve different problems. BEMS Next has causal forecast-input contracts, but does not yet reproduce the full production forecasting chain.
+This is why BEMS separates physical solar models, statistical corrections, short-term measurement-based adjustments and scenario generation. They solve different problems. BEMS Next carries that separation into versioned, causal forecast-input contracts, so the optimiser can be tested with exactly the information available at each decision.
 
 ## Why two planners, and why stochastic optimisation?
 
@@ -109,7 +111,7 @@ The future isn't one guaranteed trajectory. BEMS therefore uses **stochastic opt
 
 Each scenario has its own physical energy trajectory and constraints. Expected cost can be combined with downside-risk measures such as CVaR. Hard requirements, such as a vehicle needing sufficient charge at departure, remain constraints that the optimiser cannot sacrifice for a lower average bill.
 
-The household system has a joint MPC and adaptive J. BEMS Next is generalising scenario-based resource optimisation and stored-state values, with real-hardware and complete feature parity still outstanding.
+These are working algorithms, not just proposed components. The household system combines joint stochastic MPC with adaptive future-state valuation. BEMS Next extends causal scenario planning and stored-state valuation across different resource models in its isolated runtime.
 
 ## The regulator doesn't trust the planner blindly
 
@@ -117,7 +119,7 @@ The planner makes an economic proposal. The regulator's priorities are simpler: 
 
 It reads live physical data independently, checks electrical limits, freshness, ownership and command validity, and only then controls the equipment. A command acknowledgement is not the same as a changed setting, and neither guarantees that physical power has already responded. The household controller has encountered exactly these timing problems.
 
-Keeping this separate also means a slow, failed or numerically unstable optimiser does not get to invent physical authority. In Next, planning and the safety authority run in separate processes in the isolated simulation. That architecture still needs device-specific commissioning before it can control new hardware.
+Keeping this separate means a slow, failed or numerically unstable optimiser never gains physical authority. The real household controller already enforces this boundary. BEMS Next makes it an explicit process boundary too, with separate planning and safety processes, ownership fencing and failure tests in its simulated control loop.
 
 ## Agent-ready does not mean LLM-controlled
 
@@ -147,15 +149,17 @@ flowchart TB
 
 A language model deciding the exact power setpoint every few seconds would be a terrible control system: slow, unpredictable and difficult to verify. Optimisation and feedback control should remain numerical, deterministic and bounded by independent safety rules. **If the agent is unavailable, physical control must remain safe.**
 
-This is the goal for BEMS Next, not a claim that autonomous agent development and fault recovery are already operating in production.
+The goal is to make BEMS **agent-maintainable and adaptable**, while the numerical optimiser and physical safety loop remain independently dependable.
 
-## What exists today
+## Built today, designed to go further
 
-**BEMS today:** Real household hardware, operational solar/load/price forecasting, joint battery/EV planning, a separate physical regulator and an independent historical archive. Operational state and command journals are separate from the NAS Parquet/DuckDB analysis pipeline.
+**The operating system:** BEMS already controls real household equipment with solar, load and price forecasts, joint battery and EV planning, long-term valuation and a separate physical regulator. It also has an independent archive with Parquet and DuckDB for replay, research and evaluation.
 
-**BEMS Next:** A generalised architecture with versioned site definitions, modular resource models, scenario planning, simulated safety boundaries and captured-data testing. It is still an isolated development system. It is not yet a fully commissioned replacement for the household controller, let alone a proven industrial BESS platform.
+**The modular foundation:** BEMS Next has working site manifests, composable battery, EV and thermal models, meter-topology checks, scenario optimisation, stored-state valuation and an independent simulated safety process. These components have been exercised in multiple offline installation configurations.
 
-The ambition is much larger than optimising our electricity bill. The present installation is where the assumptions meet reality.
+**The next step:** Connect this generalised architecture to verified real-device integrations and production deployment. The household implementation is operational; Next is the engineering path to making that capability reusable across installations.
+
+BEMS started with one electricity bill. The architecture is being built for a much larger problem.
 
 ---
 

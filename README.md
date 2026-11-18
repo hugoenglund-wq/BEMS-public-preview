@@ -1,0 +1,88 @@
+# BEMS
+
+*An autonomous system coordinating solar production, battery storage and EV charging in our home.*
+
+What if your home could optimise its own electricity use?
+
+I'm hardly the first person to ask that question. Plenty of people have asked it before, and plenty have built systems to do exactly that.
+
+The problem? Most of them suck.
+
+So I set out to build something better: the first truly smart one (or smarter at least). And for lack of a better name, I called it BEMS: Building Energy Management System.
+
+<p align="center">
+  <img src="images/screenshots/dashboard-overview.png" alt="BEMS overview showing live solar production, household demand, battery state, EV charging, grid exchange and electricity price" width="320" />
+</p>
+
+*The actual BEMS dashboard, 18 November 2026.*
+
+## Why another energy management system?
+
+Most smart energy systems aren't nearly as smart as they claim to be.
+
+They only work with certain brands, rely on forecasts that leave useful information out, and sometimes make decisions that don't seem to make much sense. Worse, you often have surprisingly little control over what they're actually trying to achieve.
+
+I wanted something different.
+
+A system that doesn't care who made your inverter, battery or EV charger. One that uses the data available to make better predictions, considers the entire household rather than individual devices, and actually respects what the user wants. If I tell it the car needs to be charged by 6 AM, that's a requirement, not a suggestion.
+
+That's what I'm building BEMS to be.
+
+The current system already runs in our home with an **11 kW solar installation, 30.72 kWh battery, Solis inverter, GARO EV charger and Volvo C40**. Wider hardware compatibility is still a goal, not a claim about what works today.
+
+## Making it work in the real world
+
+Building an optimiser that looks good on paper is one thing. Getting actual hardware to follow it is another.
+
+Our GARO charger has reported measurements with timestamps **in the future**. Other measurements arrive late or describe different moments, even when they look equally fresh. And an acknowledged command doesn't necessarily mean the equipment has finished responding.
+
+At one point, BEMS mistook its own battery charging for an increase in household consumption. It then reversed the battery while the plan still wanted it to charge.
+
+Not ideal.
+
+Fixing that meant tracing the sequence of commands, readbacks and meter measurements, and changing how the regulator handles transitions between them. A lot of the engineering has looked more like this than like solving a neat optimisation problem.
+
+![Recorded commands, readbacks and AC measurements during an actual battery-control incident](images/control-incident.png)
+
+*An incident from 11 November 2026, reconstructed from recorded events. These are individual observations, not a continuous power trace.*
+
+There have been others: a charger that acknowledges commands before its state catches up, and a numerical failure that broke the optimiser.
+
+## Does it actually save money?
+
+Apparently, yes. At least according to the current estimate.
+
+On **18 November 2026**, the dashboard reported **+576.05 SEK for November** against its reference strategy.
+
+<p align="center">
+  <img src="images/screenshots/energy-flow-savings.png" alt="Real BEMS energy flow and preliminary savings dashboard showing +576.05 SEK for November" width="360" />
+</p>
+
+*The dashboard labels this **Preliminary**. It is a modelled comparison, not an invoice-verified saving.*
+
+If I extrapolate that to every household in Sweden, the market looks fantastic. Sample size: one house. I'll leave the confidence interval for another day.
+
+## Under the hood
+
+BEMS combines electricity prices, solar and household forecasts, and real measurements to plan battery and EV charging. A long-term planner looks further ahead, a short-term planner makes executable plans, and a separate regulator handles the actual control and feedback.
+
+![BEMS logical data flow, planning and control architecture](images/architecture.svg)
+
+<p align="center">
+  <img src="images/screenshots/solar-forecast.png" alt="BEMS solar forecast with uncertainty intervals" width="270" />
+  <img src="images/screenshots/quarter-hour-plan.png" alt="BEMS long-horizon plan showing forecast electricity prices" width="270" />
+</p>
+
+*Actual forecasting and planning views. The detailed architecture, including data pipelines, planner boundaries, the regulator and failure handling, will be documented separately.*
+
+## What's next?
+
+Today BEMS works with the equipment in our home. The aim is to make it hardware-independent and simple enough that someone who has never written a line of code can install it themselves.
+
+Connect your equipment, tell BEMS what you want, and let it figure out the rest.
+
+No special hardware ecosystem. No programming required. And (hopefully) a smaller electricity bill.
+
+---
+
+*This is a public documentation project. The production controller and raw household data are not published here.*

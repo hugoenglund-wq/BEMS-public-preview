@@ -5,7 +5,7 @@
 <rect width="1280" height="790" rx="24" fill="#f5f8f9"/>
 <g font-family="Arial, Helvetica, sans-serif" fill="#142d36">
 <text x="44" y="55" font-size="28" font-weight="700">From a forecast to a physical action</text>
-<text x="44" y="87" font-size="17" fill="#526773">Logical architecture · documented installation · not an electrical wiring diagram</text>
+<text x="44" y="87" font-size="17" fill="#526773">Logical architecture, documented installation, not an electrical wiring diagram</text>
 <g fill="#ffffff" stroke="#cddce1" stroke-width="1.5">
 <rect x="44" y="130" width="352" height="190" rx="16"/>
 <rect x="464" y="130" width="352" height="190" rx="16"/>
@@ -23,11 +23,11 @@
 <text x="906" y="454">Executable plan</text><text x="486" y="454">Native single writer</text><text x="66" y="454">Solis + GARO</text>
 </g>
 <g font-size="18" fill="#526773">
-<text x="66" y="229">Grid · solar · battery · charger</text><text x="66" y="258">Identity, AC boundary, quality</text><text x="66" y="287">Source time and receipt time</text>
-<text x="486" y="229">Household load · solar · prices</text><text x="486" y="258">Scenario and issuance history</text><text x="486" y="287">Vehicle context / user needs</text>
-<text x="906" y="229">Battery · EV · grid intent</text><text x="906" y="258">Tariff and physical model</text><text x="906" y="287">Long-term energy value (J)</text>
-<text x="906" y="489">Independent reconstruction</text><text x="906" y="518">Physics · charging · economics</text><text x="906" y="547">Saved inputs and validation</text>
-<text x="486" y="489">Ownership · authority · feedback</text><text x="486" y="518">Phase / BMS / hour protection</text><text x="486" y="547">Commands, stops and readback</text>
+<text x="66" y="229">Grid, solar, battery, charger</text><text x="66" y="258">Identity, AC boundary, quality</text><text x="66" y="287">Source time and receipt time</text>
+<text x="486" y="229">Household load, solar, prices</text><text x="486" y="258">Scenario and issuance history</text><text x="486" y="287">Vehicle context / user needs</text>
+<text x="906" y="229">Battery, EV, grid intent</text><text x="906" y="258">Tariff and physical model</text><text x="906" y="287">Long-term energy value (J)</text>
+<text x="906" y="489">Independent reconstruction</text><text x="906" y="518">Physics, charging, economics</text><text x="906" y="547">Saved inputs and validation</text>
+<text x="486" y="489">Ownership, authority, feedback</text><text x="486" y="518">Phase / BMS / hour protection</text><text x="486" y="547">Commands, stops and readback</text>
 <text x="66" y="489">Battery / inverter commands</text><text x="66" y="518">Charger enable / disable</text><text x="66" y="547">Real device response</text>
 </g>
 <g fill="none" stroke="#49717b" stroke-width="2.5" marker-end="url(#arrow)">
@@ -37,7 +37,7 @@
 </g>
 <rect x="44" y="658" width="1192" height="91" rx="13" fill="#e7f0f1"/>
 <text x="66" y="691" font-size="18" font-weight="700">Feedback: ACK ≠ setting readback ≠ measured power</text>
-<text x="66" y="722" font-size="17" fill="#526773">React / TypeScript dashboard + API · live state, plans, forecasts and history · not the command writer</text>
+<text x="66" y="722" font-size="17" fill="#526773">React / TypeScript dashboard + API, live state, plans, forecasts and history, not the command writer</text>
 <text x="250" y="624" font-size="16" fill="#526773">Measurements and confirmations return to the observation / control chain</text>
 </g>
 </svg>

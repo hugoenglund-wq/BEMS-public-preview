@@ -1,31 +1,33 @@
-# BEMS: Architecture
+# Architecture
 
-*One optimisation platform. Whatever the installation looks like.*
+[Back to the README](../README.md)
 
-[← Back to BEMS](../README.md)
+The README is mostly about what I want BEMS to become. This is how I'm trying to build it.
 
-The [README](../README.md) describes what I'm trying to build: an energy management system that adapts to its installation instead of making the installation adapt to it. That raises a fairly obvious question: how do you design one optimiser for a house, a warehouse and potentially a fleet of electric trucks?
+The system at home already forecasts electricity use and solar production, optimises the battery and EV charging together, looks several days ahead and controls the actual equipment. That part works. The difficult bit now is making the same approach work when the installation looks completely different.
 
-The answer isn't to write a separate optimiser for every battery or charger. **Separate what the equipment is, what we expect to happen, what we'd like to achieve and what the hardware can safely do.**
+I don't particularly want to maintain one optimiser for Solis, another for a different inverter and a third for some industrial BESS. That gets ridiculous quite quickly.
 
-Our home is where BEMS moved from an optimisation idea to a working physical controller. It now combines forecasts, joint battery and EV planning, long-term energy valuation and an independent regulator to control real equipment. **BEMS Next takes that experience and turns it into a modular platform**, built around versioned site definitions, interchangeable resource models and a separate safety process.
+## Describing the installation
 
-## The installation is a model, not a collection of brand names
+The optimiser needs to know what each resource can do, where it's connected and what we're trying to achieve. It shouldn't need to know which manufacturer made it.
 
-A battery, EV charger, heat pump and industrial BESS each have different internal dynamics. But the optimiser doesn't need to know their manufacturers. It needs contracts describing their capabilities, energy flows, limits, states and control interfaces.
+Take an EV charger. Knowing its maximum power is useful, but not enough. Which phase does it use? Does it share a limit with another charger? Can it regulate current continuously, or does it have a minimum power? How long does it take to react? What happens if communication disappears?
 
-A site also needs an explicit electrical topology, economic model and set of objectives. This is important: adding another charger is not just adding another button. It might share a phase, a fuse, a transformer or a contractual import limit with everything already installed.
+Add a second charger without answering those questions and the optimiser might produce a perfectly valid schedule for a completely imaginary electrical installation.
+
+BEMS Next uses versioned site definitions, device capabilities and resource models to describe those things. Batteries, EV charging and thermal storage contribute their own physical constraints to a shared optimisation problem. There are already offline test installations with multiple batteries and chargers, EV-only setups and thermal storage. The point is to change the installation model rather than rewrite the solver every time.
 
 ```mermaid
 flowchart TB
-    Site["Site definition<br/>Resources, topology, tariffs, goals"] --> Models["Physical & economic models"]
+    Site["Site definition<br/>Resources, topology, tariffs, goals"] --> Models["Physical and economic models"]
     Devices["Device measurements"] --> Data["Qualified data"]
-    Context["Prices, weather, operational schedules"] --> Data
-    Data --> Forecast["Forecasts & uncertainty"]
+    Context["Prices, weather, schedules"] --> Data
+    Data --> Forecast["Forecasts and uncertainty"]
     Data --> Planning["Planning"]
     Forecast --> Planning
     Models --> Planning
-    Planning -->|"Targets"| Safety["Regulator & safety"]
+    Planning -->|"Targets"| Safety["Regulator and safety"]
     Data -->|"Live measurements"| Safety
     Safety -->|"Commands"| Devices
     Devices -->|"Feedback"| Data
@@ -35,64 +37,68 @@ flowchart TB
     class Safety safe
 ```
 
-BEMS Next already implements versioned site manifests, capability-based drivers and composable models for batteries, EV charging and thermal storage. Its offline tests cover very different installations, including multiple batteries and chargers, an EV-only site and a battery with thermal storage. **The optimiser is becoming installation-driven rather than device-specific.**
+The economic model is installation-specific too. A household spot-price tariff, a network demand charge and a depot with contracted power limits are different problems. They can still use the same planning machinery, provided the costs and constraints are described correctly.
 
-## Forecasting: the best prediction might not have the lowest error
+## Forecasting
 
-Forecasting is where a seemingly small modelling choice can change an expensive physical decision.
+I originally thought the goal here would be fairly simple: make the most accurate forecast possible and give it to the optimiser.
 
-It's tempting to choose the model with the lowest mean absolute error (MAE). After all, a forecast that is wrong by fewer watts should make the controller smarter. Except **not every watt of error matters equally**.
+Turns out that's not quite how it works.
 
-Imagine overestimating solar production by 500 W on a bright summer day when the battery is full and the house is already exporting electricity. It may barely affect the decision. The same 500 W error on a dark winter day, when nearly every available watt could replace expensive grid imports, may change whether the optimiser charges the battery or saves its remaining energy. Timing matters too: an error during an expensive peak hour can matter much more than the same error at 3 AM.
+### A smaller error isn't necessarily better
 
-A fixed rule saying “winter matters more” is still an approximation. The real consequence depends on the battery's state, available flexibility, future prices, deadlines and whether the error changes a binding constraint.
+A 500 W error in solar production can be almost irrelevant on a sunny summer day when the battery is full and the house is exporting. It still has an economic cost or opportunity cost, but it might not change what the controller should do.
 
-### Why ordinary error metrics can mislead
+The same 500 W error during a dark winter day could be much more important. Maybe the battery has little energy left, grid imports are expensive and that missing solar energy changes the decision entirely. Of course, there are summer situations where an error matters a lot and winter situations where it doesn't. The actual question is whether the error changes a decision, and what that decision costs.
 
-MAE weights every evaluated watt of error equally. Summer, with much more solar production and more opportunities for large errors, can dominate the average even when winter decisions are economically more sensitive.
+This is one reason I don't think selecting models purely on MAE makes sense. The summer usually has more solar production, and therefore more room for large absolute errors. A model can perform well on annual MAE while being worse when electricity is scarce.
 
-Normalised MAE (**nMAE**) doesn't automatically solve that. It depends on what we normalise by:
+nMAE doesn't magically fix this. Normalising by installed solar capacity still doesn't tell us how valuable the energy was. Normalising by actual production can give absurd numbers on days with almost no solar, and is undefined at zero. We've experimented with weighting errors by energy scarcity and electricity prices, which helps, but it's still a proxy for the real problem.
 
-- Normalising by installed PV capacity gives a comparable percentage of rated power, but may still hide how consequential scarce winter energy is.
-- Normalising by actual production can make errors explode on very low-production days, and becomes ill-defined at zero.
-- Weighting by electricity price or estimated energy scarcity gets closer to the objective, but neither captures the entire downstream decision problem.
+Household load is arguably worse. A house isn't particularly interested in following a smooth load profile. Someone starts cooking, the heating switches on or a car gets plugged in. Predicting the right daily energy is one thing. Predicting the fifteen minutes that set an expensive demand peak is another.
 
-Household load is even harder. Cooking, heating, hot water and other loads don't reliably follow a smooth curve. **A good total-load forecast is not necessarily a good phase-load forecast.** A 6 kW load may be harmless when distributed across three phases, but exceed the limit of one phase if concentrated there. Some installations are constrained by a particular phase or branch, not by their total kW. Missing electrical topology cannot be fixed by simply training a larger model.
+And there's an extra problem: **total load doesn't necessarily tell us which phase is overloaded**. A 6 kW load spread over three phases is very different from 6 kW on one phase. At around 230 V, the latter draws about 26 A. On a site with a 16 A phase limit, the total power forecast can be correct and the proposed control action still impossible. Depending on the installation, phase loading may be the constraint that matters most.
 
-### The loss-function trap
+### What should we actually train the model to minimise?
 
-The obvious next idea is to train a forecast on economic loss rather than prediction error. We've tried versions of this with solar forecasts, including price-weighted and asymmetric objectives. That exposed a different problem: **a forecast can look economically better because it compensates for mistakes elsewhere in the system.**
+The obvious idea is to use an economic loss function instead of MAE. We tried price-weighted and asymmetric losses for solar forecasting. The results were interesting, and a little annoying.
 
-In one limited autumn battery-planning replay, an intentionally false forecast of **zero solar production** actually produced *lower simulated costs* than several more realistic forecasts. In a summer comparison, it was substantially worse. The false forecast had not discovered anything about the weather; it was making the optimiser behave more conservatively under the particular planning model and demand-charge assumptions.
+In one autumn experiment, I deliberately gave the battery planner a forecast of **zero solar production**. It was obviously wrong, but it still produced lower simulated costs than several of the more accurate forecasts. On the summer comparison it performed much worse.
 
-A separate price-weighted training experiment improved its chosen price-weighted error measure, but made some peak-tariff error measures and solar overestimation worse. Improving one surrogate objective had simply moved the error somewhere else.
+The model hadn't discovered some clever trick about predicting sunlight. The wrong forecast was making the MPC act more conservatively under that particular demand-charge model. Basically, the forecast was compensating for the planner's weaknesses.
 
-The improvement potential is measurable. In a retrospective study using archived GFS forecasts, adding a LightGBM residual to the solar physics model reduced scarcity-weighted absolute error from **0.351 to 0.246 kW, about 30%**. But that result is only half of the evaluation. The other half is whether the forecasts lead to better decisions when passed through the planner.
+That's a fairly dangerous thing to optimise for. Fix the MPC later and your supposedly improved forecast might suddenly become worse. Price-weighted training showed a related trade-off: it improved the metric it was trained for while increasing some peak-period errors and solar overestimation.
 
-That is why defining the right loss function is difficult. If we train the prediction model to work around a particular MPC weakness, a later improvement to the planner could make the supposedly better forecast counterproductive. The forecast should describe a credible future; **the planner should decide how cautious to be about that future**.
+There's real room to improve the forecasts, though. In one retrospective test with archived GFS weather, a LightGBM residual on top of the solar physics model reduced scarcity-weighted absolute error from **0.351 to 0.246 kW**, around **30%**. That's a substantial improvement in that metric. It still doesn't tell us how much money the controller would save with it.
 
 ```mermaid
-flowchart TB
-    Reality["Historical outcomes + issued forecasts"] --> Accuracy["Prediction quality<br/>MAE, bias, calibration, nMAE"]
-    Reality --> Replay["Causal MPC replay<br/>Same constraints and initial state"]
-    Accuracy --> Compare["Model selection"]
-    Replay --> Compare
-    Compare --> Decision["Does it improve decisions<br/>without distorting the forecast?"]
+flowchart LR
+    Forecasts["Candidate forecasts"] --> Metrics["MAE, bias, calibration"]
+    Forecasts --> Replay["Replay through MPC"]
+    Outcomes["Historical actuals"] --> Metrics
+    Outcomes --> Replay
+    Metrics --> Selection["Compare models"]
+    Replay --> Selection
+    Selection --> Result["Forecast quality and economic outcome"]
     classDef focus fill:#fff3dc,stroke:#d9a54a,color:#6a4916
-    class Replay,Decision focus
+    class Replay,Result focus
 ```
 
-So I don't want to optimise one metric and declare victory. Forecasts should be checked for accuracy, systematic bias, calibration, different seasons and horizons, and finally their effect on **out-of-sample decisions using the actual planner**. To make that comparison meaningful, a replay must use only the data and forecast versions available at each decision time. Otherwise, hindsight is being disguised as a forecast.
+So the approach is to evaluate forecasts on their own merits, then test what happens when the real planner uses them. The replay also has to be causal. If I'm evaluating a decision from Tuesday, I can't quietly use a weather forecast that arrived on Wednesday.
 
-This is why BEMS separates physical solar models, statistical corrections, short-term measurement-based adjustments and scenario generation. They solve different problems. BEMS Next carries that separation into versioned, causal forecast-input contracts, so the optimiser can be tested with exactly the information available at each decision.
+We currently use a combination of physical solar models, statistical corrections, recent measurements and scenarios. Different horizons call for different methods. I don't see much reason to insist that a single model should be best at everything.
 
-## Why two planners, and why stochastic optimisation?
+## Why bother with a long-term planner?
 
-A short-term optimiser can make the perfect decision for the next few hours and still get the week completely wrong.
+Suppose electricity is cheap tonight. The short-term MPC decides to fill the battery. Fine, unless tomorrow is sunny and we'd rather save room for solar generation.
 
-Suppose electricity is cheap tonight. Filling the battery looks sensible. But if tomorrow's solar production could charge it instead, buying electricity tonight may be unnecessary. That solar is not free: using it to charge the battery means giving up potential export revenue. The right decision depends on purchase and export prices, conversion losses, available capacity and future needs. Or perhaps the car must leave early and tomorrow is cloudy. **Energy left in storage has a future value**, and that value changes with the expected future and the current state.
+That solar electricity isn't free. We could potentially sell it instead of storing it, so there's an opportunity cost. But the choice still depends on the difference between buying and selling prices, battery losses, upcoming demand and how much energy we need later.
 
-That's why BEMS separates the long horizon from the decisions it actually executes. The household long-term planner looks up to **168 hours ahead** and provides a state-dependent continuation value, `J`. Short-term model predictive control (MPC) uses that value alongside current measurements, near-term forecasts and user requirements. It doesn't have to solve the entire week again every time something changes.
+A short planning horizon has trouble with this because it can't see what happens after its last time step. In the worst case, it treats the end of the horizon as the end of the world.
+
+BEMS therefore has a separate long-term planner looking up to **168 hours ahead**. Its job is to estimate the future economic value of stored energy, represented by a state-dependent function `J`. The short-term MPC uses that value at the end of its own horizon.
+
+That way, we don't need to solve the full seven-day problem every time the regulator gets a new measurement. The long-term work can run separately, with its own computation budget. New day-ahead prices can change the future value enough to justify a new calculation; every small load fluctuation usually doesn't.
 
 ```mermaid
 flowchart TB
@@ -107,60 +113,68 @@ flowchart TB
     class Long,MPC plan
 ```
 
-The future isn't one guaranteed trajectory. BEMS therefore uses **stochastic optimisation**: possible outcomes for load, solar and prices, with decisions evaluated across them. The crucial rule is *non-anticipativity*: scenarios that are indistinguishable today must share today's decision. Future actions may differ only after the information that distinguishes those futures actually becomes available.
+## Stochastic optimisation
 
-Each scenario has its own physical energy trajectory and constraints. Expected cost can be combined with downside-risk measures such as CVaR. Hard requirements, such as a vehicle needing sufficient charge at departure, remain constraints that the optimiser cannot sacrifice for a lower average bill.
+There is another fairly important detail: we don't actually know what tomorrow will look like.
 
-These are working algorithms, not just proposed components. The household system combines joint stochastic MPC with adaptive future-state valuation. BEMS Next extends causal scenario planning and stored-state valuation across different resource models in its isolated runtime.
+BEMS uses scenario-based optimisation for possible solar production, household demand and prices. The MPC evaluates decisions across those futures, including how each decision affects the battery state, grid power, charging requirements and costs.
 
-## The regulator doesn't trust the planner blindly
+The important part is *non-anticipativity*. If two scenarios have the same information available right now, the controller has to make the same decision in both. It can change its future actions once it actually observes which way things are going. Otherwise we're just letting the optimiser cheat by knowing the future.
 
-The planner makes an economic proposal. The regulator's priorities are simpler: **1. safety and control authority; 2. tracking the requested target**.
+We can optimise expected cost and account for expensive outcomes using measures such as CVaR. Physical limits and required EV departure energy still have to be respected. Saving a few kronor by sending someone away with an empty car would be a rather questionable optimisation result.
 
-It reads live physical data independently, checks electrical limits, freshness, ownership and command validity, and only then controls the equipment. A command acknowledgement is not the same as a changed setting, and neither guarantees that physical power has already responded. The household controller has encountered exactly these timing problems.
+The household implementation already uses joint stochastic MPC and adaptive future-state valuation. BEMS Next has also implemented causal scenario planning and stored-state valuation with modular resources in its isolated runtime.
 
-Keeping this separate means a slow, failed or numerically unstable optimiser never gains physical authority. The real household controller already enforces this boundary. BEMS Next makes it an explicit process boundary too, with separate planning and safety processes, ownership fencing and failure tests in its simulated control loop.
+## The regulator
 
-## Agent-ready does not mean LLM-controlled
+The planner gives the regulator a target. The regulator reads the current measurements and decides how to execute it.
 
-The idea is to let agents **build and maintain the system**, not decide exactly when the battery should charge.
+There are two priorities. First, keep control within the actual physical and authority limits. Second, follow the plan as well as possible.
 
-For a new installation, an agent could inspect the equipment and its documentation, write a driver, connect unfamiliar data sources, implement a resource model or adapt the tariff logic. Ideally, the user shouldn't have to write that integration themselves. The generated code would still need unit checks, contract tests, simulation, replay and a controlled release before it can affect physical equipment.
+That separation has been useful more than once. As mentioned in the README, BEMS once interpreted its own battery charging as extra household load and started reversing the charge. Commands, readbacks and actual power don't necessarily happen at the same moment. Acknowledging a command isn't proof that the battery has already done what we asked.
 
-The other job is dealing with major failures. In a system that controls real hardware continuously, something will eventually behave in a way nobody anticipated. Sensors drift, firmware changes, commands don't have the expected effect, and assumptions that worked yesterday stop being true. Rather than expecting every exception to have been programmed in advance, I'd like an agent to investigate unusual failures, identify the cause and help get the system back to normal. That might mean correcting an adapter, adjusting a validated model or invoking a specifically authorised recovery procedure.
+The regulator deals with measurement freshness, electrical limits, feedback, command ownership and the equipment's response. It must also keep behaving sensibly when the optimiser is slow or fails. BEMS Next makes planning and safety separate processes, and tests those boundaries with simulated faults, expiry and restarts.
 
-**The immediate response must still come from ordinary control software.** The regulator needs to detect unsafe or invalid conditions and hold, stop or fall back without waiting for an LLM. An agent can work on the wider problem, but an untested code change must not become a live physical command.
+## What I mean by agent-ready
+
+I want agents to be able to **write the code that adapts BEMS to a new installation**. Give one the equipment documentation, a description of the electrical system and the requirements, and it should be able to work on the drivers, data sources, resource models and tariff logic.
+
+The other job is dealing with things that go wrong. And with physical equipment, something always does eventually. Firmware changes, a sensor starts reporting nonsense, a command behaves differently than expected. Having an agent investigate a serious fault, reproduce it and prepare a fix seems much more useful than trying to anticipate every possible failure in advance.
+
+This does **not** mean an LLM should decide the battery setpoint every few seconds. That would be a terrible idea. The optimiser and regulator already have mathematical and physical rules for that.
+
+The real-time safety response belongs to the controller. Agents can investigate and improve the system using logs, replay and tests. Their changes go through validation and a controlled release before they affect hardware.
 
 ```mermaid
 flowchart TB
-    Setup["New equipment or major fault"] --> Agent["Engineering agent<br/>Writes integrations and investigates failures"]
-    Agent --> Checks["Tests, replay, validation"]
-    Checks --> Release["Controlled release"]
-    Release --> Control["Forecasting + MPC"]
-    Control --> Safety["Independent regulator + safety"]
-    Safety --> Hardware["Physical hardware"]
-    Hardware -->|"Measurements"| Control
-    Hardware -.->|"Fault evidence"| Agent
-    classDef software fill:#e7efff,stroke:#5485cb,color:#17457c
+    subgraph Runtime["Normal operation, no agent needed"]
+      Forecast["Forecasts"] --> MPC["MPC"]
+      MPC --> Reg["Independent regulator"]
+      Live["Live measurements"] --> Reg
+      Reg --> Hardware["Hardware"]
+      Hardware --> Live
+    end
+    subgraph Engineering["Agent-assisted engineering"]
+      Evidence["Configuration, logs, fault evidence"] --> Agent["Engineering agent"]
+      Agent --> Changes["Drivers, models, fixes"]
+      Changes --> Tests["Replay and tests"]
+      Tests --> Release["Reviewed release"]
+    end
+    Hardware -.-> Evidence
+    Release -.->|"Versioned updates"| Forecast
+    Release -.->|"Validated integration updates"| Reg
     classDef safety fill:#e6f5eb,stroke:#3f9b66,color:#1b5635
-    class Agent,Checks,Release software
-    class Safety safety
+    class Reg safety
 ```
 
-A language model deciding the exact power setpoint every few seconds would be a terrible control system: slow, unpredictable and difficult to verify. Optimisation and feedback control should remain numerical, deterministic and bounded by independent safety rules. **If the agent is unavailable, physical control must remain safe.**
+This is already how I think about the split between the normal BEMS control loop and the agent-assisted development work. Fully automatic installation and recovery are still things I'm building towards.
 
-The goal is to make BEMS **agent-maintainable and adaptable**, while the numerical optimiser and physical safety loop remain independently dependable.
+## Where it stands
 
-## Built today, designed to go further
+The household BEMS controls real equipment and combines solar, load and price forecasts with joint battery and EV planning, long-term valuation and physical feedback. There's also a separate Parquet and DuckDB archive for training, replay and figuring out what actually happened when something goes wrong.
 
-**The operating system:** BEMS already controls real household equipment with solar, load and price forecasts, joint battery and EV planning, long-term valuation and a separate physical regulator. It also has an independent archive with Parquet and DuckDB for replay, research and evaluation.
+BEMS Next takes the general parts further. Site manifests, resource models for batteries, charging and thermal storage, meter topology, scenario optimisation and a separate simulated safety process are implemented and tested across different configurations. Connecting that system to real hardware with the same level of verification as the household controller is the next part of the work.
 
-**The modular foundation:** BEMS Next has working site manifests, composable battery, EV and thermal models, meter-topology checks, scenario optimisation, stored-state valuation and an independent simulated safety process. These components have been exercised in multiple offline installation configurations.
+It's quite a lot of machinery for what started as an attempt to save money on electricity.
 
-**The next step:** Connect this generalised architecture to verified real-device integrations and production deployment. The household implementation is operational; Next is the engineering path to making that capability reusable across installations.
-
-BEMS started with one electricity bill. The architecture is being built for a much larger problem.
-
----
-
-*Architecture and research summary based on BEMS and BEMS Next source and studies reviewed on 18 November 2026. The diagrams describe logical responsibilities, not physical wiring or completed universal hardware support.*
+[Back to the README](../README.md)

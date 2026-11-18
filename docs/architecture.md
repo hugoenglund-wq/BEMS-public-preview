@@ -18,9 +18,9 @@ A site also needs an explicit electrical topology, economic model and set of obj
 
 ```mermaid
 flowchart TB
-    Site["Site definition<br/>Resources · topology · tariffs · goals"] --> Models["Physical & economic models"]
+    Site["Site definition<br/>Resources, topology, tariffs, goals"] --> Models["Physical & economic models"]
     Devices["Device measurements"] --> Data["Qualified data"]
-    Context["Prices · weather · operational schedules"] --> Data
+    Context["Prices, weather, operational schedules"] --> Data
     Data --> Forecast["Forecasts & uncertainty"]
     Data --> Planning["Planning"]
     Forecast --> Planning
@@ -71,7 +71,7 @@ That is why defining the right loss function is difficult. If we train the predi
 
 ```mermaid
 flowchart TB
-    Reality["Historical outcomes + issued forecasts"] --> Accuracy["Prediction quality<br/>MAE · bias · calibration · nMAE"]
+    Reality["Historical outcomes + issued forecasts"] --> Accuracy["Prediction quality<br/>MAE, bias, calibration, nMAE"]
     Reality --> Replay["Causal MPC replay<br/>Same constraints and initial state"]
     Accuracy --> Compare["Model selection"]
     Replay --> Compare

@@ -1,4 +1,4 @@
-# BEMS — Architecture
+# BEMS: Architecture
 
 *One optimisation platform. Whatever the installation looks like.*
 
@@ -80,7 +80,7 @@ flowchart TB
     class Replay,Decision focus
 ```
 
-So I don't want to optimise one metric and declare victory. Forecasts should be checked for accuracy, systematic bias, calibration, different seasons and horizons, and finally their effect on **out-of-sample decisions using the actual planner**. To make that comparison meaningful, a replay must use only the data and forecast versions available at each decision time—no hindsight disguised as a forecast.
+So I don't want to optimise one metric and declare victory. Forecasts should be checked for accuracy, systematic bias, calibration, different seasons and horizons, and finally their effect on **out-of-sample decisions using the actual planner**. To make that comparison meaningful, a replay must use only the data and forecast versions available at each decision time. Otherwise, hindsight is being disguised as a forecast.
 
 This also explains why BEMS separates physical solar models, statistical corrections, short-term measurement-based adjustments and scenario generation. They solve different problems. BEMS Next has causal forecast-input contracts, but does not yet reproduce the full production forecasting chain.
 
@@ -88,7 +88,7 @@ This also explains why BEMS separates physical solar models, statistical correct
 
 A short-term optimiser can make the perfect decision for the next few hours and still get the week completely wrong.
 
-Suppose electricity is cheap tonight. Filling the battery looks sensible—unless tomorrow brings enough solar to fill it for free. Or perhaps the car must leave early and tomorrow is cloudy. **Energy left in storage has a future value**, and that value changes with the expected future and the current state.
+Suppose electricity is cheap tonight. Filling the battery looks sensible. But if tomorrow's solar production could charge it instead, buying electricity tonight may be unnecessary. That solar is not free: using it to charge the battery means giving up potential export revenue. The right decision depends on purchase and export prices, conversion losses, available capacity and future needs. Or perhaps the car must leave early and tomorrow is cloudy. **Energy left in storage has a future value**, and that value changes with the expected future and the current state.
 
 That's why BEMS separates the long horizon from the decisions it actually executes. The household long-term planner looks up to **168 hours ahead** and provides a state-dependent continuation value, `J`. Short-term model predictive control (MPC) uses that value alongside current measurements, near-term forecasts and user requirements. It doesn't have to solve the entire week again every time something changes.
 
@@ -107,7 +107,7 @@ flowchart TB
 
 The future isn't one guaranteed trajectory. BEMS therefore uses **stochastic optimisation**: possible outcomes for load, solar and prices, with decisions evaluated across them. The crucial rule is *non-anticipativity*: scenarios that are indistinguishable today must share today's decision. Future actions may differ only after the information that distinguishes those futures actually becomes available.
 
-Each scenario has its own physical energy trajectory and constraints. Expected cost can be combined with downside-risk measures such as CVaR, while hard requirements—such as a vehicle needing sufficient charge at departure—remain constraints, not something the optimiser is free to sacrifice for a lower average bill.
+Each scenario has its own physical energy trajectory and constraints. Expected cost can be combined with downside-risk measures such as CVaR. Hard requirements, such as a vehicle needing sufficient charge at departure, remain constraints that the optimiser cannot sacrifice for a lower average bill.
 
 The household system has a joint MPC and adaptive J. BEMS Next is generalising scenario-based resource optimisation and stored-state values, with real-hardware and complete feature parity still outstanding.
 
@@ -141,7 +141,7 @@ That is the direction behind BEMS Next: an extensible, **agent-ready** platform 
 
 **BEMS today:** Real household hardware, operational solar/load/price forecasting, joint battery/EV planning, a separate physical regulator and an independent historical archive. Operational state and command journals are separate from the NAS Parquet/DuckDB analysis pipeline.
 
-**BEMS Next:** A generalised architecture with versioned site definitions, modular resource models, scenario planning, simulated safety boundaries and captured-data testing. It is still an isolated development system—not yet a fully commissioned replacement for the household controller, let alone a proven industrial BESS platform.
+**BEMS Next:** A generalised architecture with versioned site definitions, modular resource models, scenario planning, simulated safety boundaries and captured-data testing. It is still an isolated development system. It is not yet a fully commissioned replacement for the household controller, let alone a proven industrial BESS platform.
 
 The ambition is much larger than optimising our electricity bill. The present installation is where the assumptions meet reality.
 

@@ -74,7 +74,25 @@ If I extrapolate that to every household in Sweden, the market looks fantastic. 
 
 BEMS combines electricity prices, solar and household forecasts, and real measurements to plan battery and EV charging. A long-term planner looks further ahead, a short-term planner makes executable plans, and a separate regulator handles the actual control and feedback.
 
-![BEMS logical data flow, planning and control architecture](images/architecture.svg)
+```mermaid
+flowchart LR
+    A["Data"] --> B["Forecasts"]
+    A --> C["Planning"]
+    B --> C
+    A --> D["Regulator"]
+    C --> D
+    D --> E["Hardware"]
+    E -->|"Feedback"| A
+
+    classDef data fill:#EFF2F6,stroke:#94A3B8,color:#243041
+    classDef forecast fill:#FFF5DC,stroke:#E3AD37,color:#775111
+    classDef plan fill:#E5F0FF,stroke:#4388E8,color:#174B8A
+    classDef control fill:#E5F6EA,stroke:#3DA469,color:#17633A
+    class A data
+    class B forecast
+    class C plan
+    class D,E control
+```
 
 <p align="center">
   <img src="images/screenshots/solar-forecast.png" alt="BEMS solar forecast with uncertainty intervals" width="270" />

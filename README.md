@@ -66,7 +66,7 @@ On **18 November 2026**, the dashboard reported **+576.05 SEK for November** aga
   <img src="images/screenshots/energy-flow-savings.png" alt="Real BEMS energy flow and preliminary savings dashboard showing +576.05 SEK for November" width="360" />
 </p>
 
-*The dashboard labels this **Preliminary**. It is a modelled comparison, not an invoice-verified saving.*
+*Approximately **US$57** at the 18 November 2026 exchange rate (about 10.13 SEK/USD). The dashboard labels this **Preliminary**: it is a modelled comparison, not an invoice-verified saving.*
 
 If I extrapolate that to every household in Sweden, the market looks fantastic. Sample size: one house. I'll leave the confidence interval for another day.
 

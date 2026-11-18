@@ -99,7 +99,7 @@ flowchart LR
   <img src="images/screenshots/quarter-hour-plan.png" alt="BEMS long-horizon plan showing forecast electricity prices" width="270" />
 </p>
 
-*Actual forecasting and planning views. The detailed architecture, including data pipelines, planner boundaries, the regulator and failure handling, will be documented separately.*
+*Actual forecasting and planning views. For the system design, planner boundaries, regulator, data pipeline and failure handling, see the [technical architecture](docs/architecture.md).*
 
 ## What's next?
 

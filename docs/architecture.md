@@ -119,23 +119,35 @@ It reads live physical data independently, checks electrical limits, freshness, 
 
 Keeping this separate also means a slow, failed or numerically unstable optimiser does not get to invent physical authority. In Next, planning and the safety authority run in separate processes in the isolated simulation. That architecture still needs device-specific commissioning before it can control new hardware.
 
-## Agent-ready, without giving an agent the keys to the inverter
+## Agent-ready does not mean LLM-controlled
 
-The long-term goal is for an agent to help adapt BEMS to unfamiliar equipment, electrical layouts and financial models. It might propose a driver, a battery model, a new tariff or an integration with a logistics company's route-planning system.
+The idea is to let agents **build and maintain the system**, not decide exactly when the battery should charge.
 
-But an agent-generated integration should not be allowed to immediately send commands to a physical installation. It must pass unit and schema checks, topology validation, reproducible simulation and independent safety review, followed by explicit authorisation for actual actuation.
+For a new installation, an agent could inspect the equipment and its documentation, write a driver, connect unfamiliar data sources, implement a resource model or adapt the tariff logic. Ideally, the user shouldn't have to write that integration themselves. The generated code would still need unit checks, contract tests, simulation, replay and a controlled release before it can affect physical equipment.
+
+The other job is dealing with major failures. In a system that controls real hardware continuously, something will eventually behave in a way nobody anticipated. Sensors drift, firmware changes, commands don't have the expected effect, and assumptions that worked yesterday stop being true. Rather than expecting every exception to have been programmed in advance, I'd like an agent to investigate unusual failures, identify the cause and help get the system back to normal. That might mean correcting an adapter, adjusting a validated model or invoking a specifically authorised recovery procedure.
+
+**The immediate response must still come from ordinary control software.** The regulator needs to detect unsafe or invalid conditions and hold, stop or fall back without waiting for an LLM. An agent can work on the wider problem, but an untested code change must not become a live physical command.
 
 ```mermaid
-flowchart LR
-    Site["New site & requirements"] --> Agent["Agent proposes models / adapters"]
-    Agent --> Verify["Contracts · replay · safety tests"]
-    Verify --> Approval["Reviewed release & authorisation"]
-    Approval --> Runtime["Independent runtime safety"]
-    classDef gate fill:#e6f5eb,stroke:#429969,color:#1d5435
-    class Verify,Approval,Runtime gate
+flowchart TB
+    Setup["New equipment or major fault"] --> Agent["Engineering agent<br/>Writes integrations and investigates failures"]
+    Agent --> Checks["Tests, replay, validation"]
+    Checks --> Release["Controlled release"]
+    Release --> Control["Forecasting + MPC"]
+    Control --> Safety["Independent regulator + safety"]
+    Safety --> Hardware["Physical hardware"]
+    Hardware -->|"Measurements"| Control
+    Hardware -.->|"Fault evidence"| Agent
+    classDef software fill:#e7efff,stroke:#5485cb,color:#17457c
+    classDef safety fill:#e6f5eb,stroke:#3f9b66,color:#1b5635
+    class Agent,Checks,Release software
+    class Safety safety
 ```
 
-That is the direction behind BEMS Next: an extensible, **agent-ready** platform rather than software permanently tied to one household.
+A language model deciding the exact power setpoint every few seconds would be a terrible control system: slow, unpredictable and difficult to verify. Optimisation and feedback control should remain numerical, deterministic and bounded by independent safety rules. **If the agent is unavailable, physical control must remain safe.**
+
+This is the goal for BEMS Next, not a claim that autonomous agent development and fault recovery are already operating in production.
 
 ## What exists today
 

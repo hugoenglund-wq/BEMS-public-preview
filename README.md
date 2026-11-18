@@ -32,7 +32,7 @@ I wanted to build a system that could adapt to the installation, rather than for
 
 The long-term idea behind BEMS is an AI-supervised energy management system that can adapt its software to different hardware, data sources and economic models, without requiring the user to understand any of them. Ideally, you connect your equipment, tell BEMS what matters to you, and it figures out how to make the most of it.
 
-And there's no particular reason why that should stop at residential buildings.
+And there's no particular reason why that should stop with homes. 
 
 Imagine a logistics company operating a fleet of electric trucks with a large battery energy storage system. Optimising that installation would require more than electricity prices and weather forecasts. BEMS would need to communicate with the company's internal systems, understand where the trucks are, their planned routes and when they need to leave.
 

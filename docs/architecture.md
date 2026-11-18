@@ -94,7 +94,7 @@ That's why BEMS separates the long horizon from the decisions it actually execut
 
 ```mermaid
 flowchart TB
-    Future["Possible futures<br/>Prices · load · solar · requirements"] --> Long["Long-term planner<br/>Future value J"]
+    Future["Possible futures<br/>Prices, load, solar, requirements"] --> Long["Long-term planner<br/>Future value J"]
     Future --> MPC["Short-term stochastic MPC"]
     Long -->|"Value of remaining energy"| MPC
     State["Current measured state"] --> MPC

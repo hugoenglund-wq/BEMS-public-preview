@@ -14,7 +14,7 @@ So I set out to build something better: the first truly smart one (or smarter at
   <img src="images/screenshots/dashboard-overview.png" alt="BEMS overview showing live solar production, household demand, battery state, EV charging, grid exchange and electricity price" width="320" />
 </p>
 
-*The actual BEMS dashboard, 18 November 2026.*
+*The actual BEMS dashboard, 19 November 2026.*
 
 ## Why another energy management system?
 
@@ -60,13 +60,13 @@ There have been others: a charger that acknowledges commands before its state ca
 
 Apparently, yes. At least according to the current estimate.
 
-On **18 November 2026**, the dashboard reported **+576.05 SEK for November** against its reference strategy.
+On **19 November 2026**, the dashboard reported **+634.11 SEK for November** against its reference strategy.
 
 <p align="center">
-  <img src="images/screenshots/energy-flow-savings.png" alt="Real BEMS energy flow and preliminary savings dashboard showing +576.05 SEK for November" width="360" />
+  <img src="images/screenshots/energy-flow-savings.png" alt="Real BEMS energy flow and preliminary savings dashboard showing +634.11 SEK for November" width="360" />
 </p>
 
-*Approximately **US$57** at the 18 November 2026 exchange rate (about 10.13 SEK/USD). The dashboard labels this **Preliminary**: it is a modelled comparison, not an invoice-verified saving.*
+*Approximately **US$63** at the 19 November 2026 exchange rate (about 10.14 SEK/USD). The dashboard labels this **Preliminary**: it is a modelled comparison, not an invoice-verified saving.*
 
 If I extrapolate that to every household in Sweden, the market looks fantastic. Sample size: one house. I'll leave the confidence interval for another day.
 
